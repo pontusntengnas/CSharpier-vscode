@@ -1,3 +1,5 @@
+import { spawn } from "child_process";
+import { types } from "util";
 import {
   env,
   ExtensionContext,
@@ -7,27 +9,45 @@ import {
   TextEdit,
   Uri,
   window,
+  workspace,
 } from "vscode";
-import { spawn } from "child_process";
-import commandExists = require("command-exists");
+import { isInstalled } from "./is-installed";
 import { log } from "./logger";
 
-export function activate(context: ExtensionContext) {
+export async function activate(_: ExtensionContext) {
+  if (!workspace.isTrusted) {
+    workspace.onDidGrantWorkspaceTrust(() => initPlugin());
+    return;
+  }
+
+  initPlugin();
+}
+
+const initPlugin = async () => {
+  const formatterInstalled = await validateInstall();
+  if (formatterInstalled) {
+    registerFormatter();
+  }
+};
+
+const validateInstall = async (): Promise<boolean> => {
+  const installed = await isInstalled("dotnet-csharpier");
+  if (!installed) {
+    await displayInstallNeededMessage();
+  }
+
+  return installed;
+};
+
+const registerFormatter = (): void => {
   languages.registerDocumentFormattingEditProvider("csharp", {
     async provideDocumentFormattingEdits(
       document: TextDocument
     ): Promise<Array<TextEdit> | undefined> {
-      commandExists("dotnet-csharpier", async (_, exists: boolean) => {
-        if (!exists) {
-          await displayInstallNeededMessage();
-          return undefined;
-        }
-      });
-
       log(`Formatting started.`);
 
       const formatResult = await formatCode(document.getText());
-      if (isError(formatResult)) {
+      if (types.isNativeError(formatResult)) {
         log(`An error occurred: ${formatResult.message}`);
         window.showErrorMessage(`An error occurred: ${formatResult.message}`);
         return undefined;
@@ -45,7 +65,7 @@ export function activate(context: ExtensionContext) {
       return [TextEdit.replace(getDocumentRange(document), formatResult)];
     },
   });
-}
+};
 
 const formatCode = (code: string): Promise<string | Error | undefined> =>
   new Promise((resolve) => {
@@ -84,8 +104,6 @@ const getDocumentRange = (document: TextDocument): Range => {
   var lastLine = document.lineAt(document.lineCount - 1);
   return new Range(firstLine.range.start, lastLine.range.end);
 };
-
-const isError = (object: any): object is Error => object.message !== undefined;
 
 const displayInstallNeededMessage = async () => {
   log("CSharpier not found");

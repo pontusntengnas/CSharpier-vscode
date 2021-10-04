@@ -13,6 +13,12 @@
     "onLanguage:csharp"
   ],
   "main": "./out/extension.js",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "This extension is only supported in trusted workspaces"
+    }
+  },
   "contributes": {
     "languages": [
       {
@@ -46,6 +52,9 @@
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js"
   },
+  "dependencies": {
+    "command-exists": "^1.2.9"
+  },
   "devDependencies": {
     "@types/command-exists": "^1.2.0",
     "@types/glob": "^7.1.4",
@@ -60,8 +69,5 @@
     "mocha": "^9.1.1",
     "prettier": "^2.4.1",
     "typescript": "^4.4.3"
-  },
-  "dependencies": {
-    "command-exists": "^1.2.9"
   }
 }
