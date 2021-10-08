@@ -1,4 +1,3 @@
-import { spawn } from "child_process";
 import { types } from "util";
 import {
   env,
@@ -11,6 +10,10 @@ import {
   window,
   workspace,
 } from "vscode";
+import {
+  formatCodeWithCSharpier,
+  formatFileWithCSharpierInPlace,
+} from "./csharpier";
 import { isInstalled } from "./is-installed";
 import { log } from "./logger";
 
@@ -46,62 +49,51 @@ const registerFormatter = (): void => {
     ): Promise<Array<TextEdit> | undefined> {
       log(`Formatting started.`);
 
-      const formatResult = await formatCode(document.getText());
-      if (types.isNativeError(formatResult)) {
-        log(`An error occurred: ${formatResult.message}`);
-        window.showErrorMessage(`An error occurred: ${formatResult.message}`);
-        return undefined;
-      }
-      if (!formatResult) {
-        log(
-          `No formatting done. [${document.fileName}] does probably not compile.`
-        );
-
-        return undefined;
+      if (document.isUntitled) {
+        return formatByTextEdit(document);
       }
 
-      log(`Formatting completed.`);
-
-      return [TextEdit.replace(getDocumentRange(document), formatResult)];
+      formatInPlace(document.fileName);
     },
   });
 };
 
-const formatCode = (code: string): Promise<string | Error | undefined> =>
-  new Promise((resolve) => {
-    const csharpierProcess = spawn(
-      "dotnet",
-      ["csharpier", "--fast", "--write-stdout"],
-      {
-        timeout: 2000,
-      }
+const formatInPlace = (fileName: string) => {
+  const formatResult = formatFileWithCSharpierInPlace(fileName);
+
+  if (!formatResult) {
+    log(`No formatting done. [${fileName}] does probably not compile.`);
+  }
+};
+
+const formatByTextEdit = async (
+  document: TextDocument
+): Promise<Array<TextEdit> | undefined> => {
+  const formatResult = await formatCodeWithCSharpier(document.getText());
+
+  if (types.isNativeError(formatResult)) {
+    log(`An error occurred: ${formatResult.message}`);
+    window.showErrorMessage(`An error occurred: ${formatResult.message}`);
+
+    return undefined;
+  }
+  if (!formatResult) {
+    log(
+      `No formatting done. [${document.fileName}] does probably not compile.`
     );
 
-    const output: Array<string> = [];
+    return undefined;
+  }
 
-    csharpierProcess.stdout.on("data", (chunk: Buffer) => {
-      output.push(chunk.toString());
-    });
+  log(`Formatting completed.`);
 
-    csharpierProcess.on("error", resolve);
-
-    csharpierProcess.on("exit", () => {
-      if (output.length <= 0 && code.length > 0) {
-        // HACK: if this is true then file could not compile.
-        // Need to find a better way for this.
-        resolve(undefined);
-      }
-
-      resolve(output.join());
-    });
-
-    csharpierProcess.stdin.write(code);
-    csharpierProcess.stdin.end();
-  });
+  return [TextEdit.replace(getDocumentRange(document), formatResult)];
+};
 
 const getDocumentRange = (document: TextDocument): Range => {
   var firstLine = document.lineAt(0);
   var lastLine = document.lineAt(document.lineCount - 1);
+
   return new Range(firstLine.range.start, lastLine.range.end);
 };
 
@@ -110,10 +102,10 @@ const displayInstallNeededMessage = async () => {
 
   const selection = await window.showErrorMessage(
     "CSharpier must be installed globally.",
-    "Install"
+    "Go to CSharpiers Github"
   );
 
-  if (selection === "Install") {
+  if (selection === "Go to CSharpiers Github") {
     env.openExternal(Uri.parse("https://github.com/belav/csharpier"));
   }
 };

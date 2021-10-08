@@ -4,7 +4,7 @@ let outputChannel: OutputChannel | null = null;
 
 export const log = (message: string): void => {
   const loggingEnabled = workspace
-    .getConfiguration("csharpier")
+    .getConfiguration("csharpier-vscode")
     .get<boolean>("debugLog");
 
   if (!loggingEnabled) {
