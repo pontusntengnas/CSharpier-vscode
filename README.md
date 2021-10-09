@@ -1,4 +1,4 @@
-# csharpier-vscode README
+# csharpier-vscode
 
 CSharpier formatter for Visual Studio Code.
 To learn more about CSharpier go to [CSharpier Github](https://github.com/belav/csharpier)
@@ -6,8 +6,6 @@ To learn more about CSharpier go to [CSharpier Github](https://github.com/belav/
 I am not the author of CSharpier, but since I am a big fan of the way CSharpier formats files I decided to make this extension so that it can be easily integrated into the best editor out there.
 
 If you discover any issues when using this plugin please open an issue on Github.
-
------------------------------------------------------------------------------------------------------------
 
 ## Features
 

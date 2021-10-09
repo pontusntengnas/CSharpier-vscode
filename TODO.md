@@ -1,4 +1,2 @@
-* Format in place, setting to be able to handle non existing files?
-* Write tests
+* CI pipeline
 * Add Install command instead of Github link
-* Format with text does not resolve error anymore
